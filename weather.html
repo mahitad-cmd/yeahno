@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Minimal Weather</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body{
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #FAFAFA;
+    color: #111827;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Notion Style Minimal Background Elements */
+.bg-element {
+    position: fixed;
+    color: #E5E7EB;
+    font-size: 11px;
+    font-family: monospace;
+    user-select: none;
+    pointer-events: none;
+}
+.bg-tl { top: 30px; left: 30px; text-align: left; }
+.bg-tr { top: 30px; right: 30px; text-align: right; }
+.bg-bl { bottom: 30px; left: 30px; text-align: left; }
+.bg-br { bottom: 30px; right: 30px; text-align: right; }
+
+.container{
+    width: 380px;
+    padding: 30px 10px;
+    background: transparent; /* Box removed completely */
+}
+
+h1{
+    font-size: 18px;
+    color: #111827;
+    margin-bottom: 20px;
+    font-weight: 600;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.search-box{
+    display: flex;
+    gap: 8px;
+    margin-bottom: 30px;
+}
+
+input{
+    flex: 1;
+    border: 1px solid #E5E7EB;
+    outline: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    background: #FFFFFF;
+    font-size: 14px;
+    color: #374151;
+    transition: all 0.2s;
+}
+
+input:focus {
+    border-color: #111827;
+}
+
+button{
+    border: 1px solid #111827;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    background: #111827;
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+button:hover{
+    background: #374151;
+    border-color: #374151;
+}
+
+#result{
+    text-align: left;
+    animation: fade .3s ease-out;
+}
+
+@keyframes fade{
+    from{ opacity: 0; }
+    to{ opacity: 1; }
+}
+
+.weather-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #E5E7EB;
+    margin-bottom: 16px;
+}
+
+.city{
+    font-size: 20px;
+    color: #111827;
+    font-weight: 600;
+}
+
+.temp{
+    font-size: 28px;
+    color: #111827;
+    font-weight: 400;
+}
+
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 14px;
+}
+
+.label {
+    color: #6B7280;
+}
+
+.value {
+    color: #111827;
+    font-weight: 500;
+}
+
+.advice-box {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #E5E7EB;
+    font-size: 14px;
+    color: #4B5563;
+    line-height: 1.6;
+}
+
+.error-msg {
+    color: #000000;
+    border-left: 2px solid #111827;
+    padding-left: 12px;
+    font-size: 14px;
+}
+</style>
+</head>
+<body>
+
+<!-- Background Details -->
+<div class="bg-element bg-tl">INDEX // 01<br>SYS.LOC // GRID_ALPHA</div>
+<div class="bg-element bg-tr">METRIC: METEO_V1<br>SCALE: CELSIUS</div>
+<div class="bg-element bg-bl">+++ STATUS: OPERATIONAL<br>REF_SYS // WGS84</div>
+<div class="bg-element bg-br">© MINIMALIST INDEX<br>[ 51.5074° N, 0.1278° W ]</div>
+
+<div class="container">
+    <h1>☁️ Weather</h1>
+    
+    <div class="search-box">
+        <input id="city" value="London" placeholder="Enter city...">
+        <button onclick="getWeather()">Search</button>
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+async function getWeather(){
+const city = document.getElementById("city").value;
+
+try{
+const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${city}&count=1&format=json`);
+const geoData = await geo.json();
+
+if(!geoData.results) throw new Error("City not found");
+
+const {latitude,longitude,name} = geoData.results[0];
+
+// Dynamic structural update to background coordinates 
+document.querySelector('.bg-br').innerHTML = `© MINIMALIST INDEX<br>[ ${latitude.toFixed(4)}° N, ${longitude.toFixed(4)}° E ]`;
+
+const weather = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m&temperature_unit=celsius`);
+const data = await weather.json();
+
+const temp = data.current.temperature_2m;
+const humidity = data.current.relative_humidity_2m;
+
+// Determine weather condition status
+let condition = "Good";
+if (temp < 10) {
+    condition = "Cold";
+} else if (temp > 30) {
+    condition = "Harsh / Hot";
+} else if (humidity > 75) {
+    condition = "Bad / Rainy";
+}
+
+// Generate minimal contextual advice
+let advice = "Enjoy the day.";
+if (humidity > 75) {
+    advice = "High humidity level. Looks like monsoon weather, definitely carry an umbrella ☔";
+} else if (temp < 8) {
+    advice = "Freezing temperatures out there. Dress warmly before going out.";
+} else if (temp > 28) {
+    advice = "Warm conditions. Remember to stay hydrated.";
+}
+
+document.getElementById("result").innerHTML = `
+<div class="weather-header">
+    <div class="city">${name}</div>
+    <div class="temp">${temp}°C</div>
+</div>
+
+<div class="data-row">
+    <span class="label">Condition</span>
+    <span class="value">${condition}</span>
+</div>
+
+<div class="data-row">
+    <span class="label">Humidity</span>
+    <span class="value">${humidity}%</span>
+</div>
+
+<div class="advice-box">
+    <strong>Note:</strong> ${advice}
+</div>
+`;
+
+} catch(e) {
+    document.getElementById("result").innerHTML = `
+    <div class="error-msg">
+        Error: ${e.message}
+    </div>
+    `;
+}
+}
+
+// Run initially
+getWeather();
+</script>
+</body>
+</html>
